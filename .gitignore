@@ -1,0 +1,81 @@
+# =========================
+# System Files
+# =========================
+.DS_Store
+*.swp
+*.swo
+*~
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# =========================
+# Node & Next.js (Client)
+# =========================
+client/node_modules/
+client/.next/
+client/out/
+client/build/
+client/.env*.local
+client/.vercel
+client/npm-debug.log*
+client/yarn-debug.log*
+client/yarn-error.log*
+client/pnpm-debug.log*
+client/.pnp.*
+client/.eslintcache
+
+# =========================
+# Python & FastAPI (Server)
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+server/.venv/
+server/venv/
+server/env/
+server/build/
+server/develop-eggs/
+server/dist/
+server/downloads/
+server/eggs/
+server/.eggs/
+server/lib/
+server/lib64/
+server/parts/
+server/sdist/
+server/var/
+server/wheels/
+server/share/python-wheels/
+server/*.egg-info/
+server/.installed.cfg
+server/*.egg
+
+# SQLite Databases
+server/*.sqlite3
+server/*.db
+server/brand_dna.db
+
+# =========================
+# IDEs and Editors
+# =========================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# =========================
+# Project Specific
+# =========================
+.agents/
+backup-codes/
+skills-lock.json
+
+# Environment Variables
+.env
+.env.*
+!.env.example
