@@ -1,6 +1,6 @@
-# Brand DNA Extractor
+# Helix
 
-Brand DNA Extractor is an advanced, AI-driven platform designed to streamline brand analysis and visual identity extraction for agencies, marketers, and developers. By simply inputting a company's website URL, the application autonomously scrapes and synthesizes deep structural data—including typography, color palettes, CSS variables, and strategic metadata. 
+Helix is an advanced, AI-driven platform designed to streamline brand analysis and visual identity extraction for agencies, marketers, and developers. By simply inputting a company's website URL, the application autonomously scrapes and synthesizes deep structural data—including typography, color palettes, CSS variables, and strategic metadata. 
 
 Powered by Google Gemini and a robust FastAPI backend, the system acts as a virtual senior brand strategist. It interprets raw web structure into a cohesive "Brand DNA" profile, articulating the brand's core values, target audience, personality, and tone of voice. The results are elegantly displayed within a modern, glassmorphic Next.js dashboard, providing teams with immediate strategic insights. 
 

@@ -233,7 +233,7 @@ def generate_brand_dna_pdf(dna: dict) -> bytes:
         # Bottom footer text & page number
         canvas.setFont('Helvetica-Oblique', 8)
         canvas.setFillColorRGB(0.6, 0.6, 0.6)
-        footer_text = f"Brand DNA extracted by BrandDNA App. Generated for {_escape(brand_name)}.   |   Page {doc.page}"
+        footer_text = f"Brand DNA extracted by Helix. Generated for {_escape(brand_name)}.   |   Page {doc.page}"
         canvas.drawCentredString(A4[0] / 2.0, 14*mm, footer_text)
         
         canvas.restoreState()
