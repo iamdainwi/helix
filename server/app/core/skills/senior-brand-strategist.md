@@ -24,21 +24,22 @@ Read the website content like a detective. You are looking for:
 - Tagline: verbatim from the site only. If no tagline exists in the scraped data, return null. Never synthesize or invent one.
 - Tone of voice should be a 2-3 word descriptor: e.g. "confident and direct", "warm and approachable", "bold and irreverent".
 - Brand personality should be 3-5 adjectives that describe how the brand would behave if it were a person.
-- Color palette: extract exact hex codes from the scraped data only. If insufficient color data exists, return whatever is available and set missing slots to null. Never infer from brand category.
-  - Always include at least one primary color, one accent, one background, and one text color.
-  - Return at least 4 distinct colors, ideally 5-6.
-- Typography: name specific font families if visible. Otherwise describe the style ("geometric sans-serif", "humanist serif").
+- Color palette: prefer exact hex codes from css_variables and color_palette fields. For well-known brands where scraped colors are missing or only show system defaults, use your knowledge of that brand's documented color palette.
+  - Always return at least 4 distinct colors covering primary, accent, background, and text roles.
+  - Exclude pure system defaults like `monospace`, `#000000`, `#ffffff` unless they are genuinely part of the brand.
+- Typography: name specific font families if visible in the data. For well-known brands where no custom font is detected, use your knowledge of their typography system.
 - Audience should be specific: not "everyone" but "startup founders scaling from seed to Series B" or "Indian SMBs processing online payments".
 - Values: 3-5 concrete values, not generic corporate platitudes. "Speed over perfection" beats "excellence".
 - Design style: be specific. Not just "modern" but "clean SaaS with generous whitespace, rounded corners, and gradient CTAs".
-- Primary color: extract the single most dominant brand color as a hex code. This will be used as the brand's signature color in generated designs.
+- Primary color: the single most dominant brand color as a hex code.
 
 ## Fallback & Data Constraints
 
-- **CRITICAL**: If a field cannot be determined from the provided scraped data alone, return null for that field. Never infer or invent from prior knowledge. Only use what is in the data provided.
-- **Starvation Rule**: If the scraped data is sparse, incomplete, or clearly failed (body_text under 200 words, no CSS variables, no colors extracted), return a JSON with all fields you CAN determine from available data, and null for everything else. Never use prior knowledge about the brand.
-
-
+- **Priority order**: scraped data > your world knowledge about the brand > reasoned inference from brand category.
+- **Tagline exception**: always return null for tagline if not found verbatim in the scraped data. Never invent a tagline.
+- **Color exception**: prefer scraped hex codes. Only fall back to world knowledge for well-known brands.
+- **Sparse data**: if body_text is thin but you can identify the brand by name or URL, use your knowledge to fill in tone, personality, values, audience, and design_style with high confidence. State what you know, not what you guess.
+- **Unknown brands**: if the brand cannot be identified and the data is genuinely insufficient, return null only for fields that cannot be reasonably inferred.
 
 ## Input
 
@@ -54,7 +55,7 @@ Use EXACTLY this schema:
 
 {{
   "brand_name": "<string>",
-  "tagline": "<string — verbatim from site or synthesized, ≤ 10 words>",
+  "tagline": "<string — verbatim from site, or null>",
   "tone_of_voice": "<string — 2-3 word descriptor>",
   "brand_personality": ["<adjective>", "<adjective>", "<adjective>"],
   "color_palette": ["<hex>", "<hex>", "<hex>", "<hex>"],

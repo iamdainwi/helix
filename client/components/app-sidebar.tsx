@@ -7,6 +7,8 @@ import { Sparkles, Plus, LayoutDashboard, Loader2, Settings, Trash2 } from "luci
 import apiClient from "@/lib/axios"
 import { useAuth } from "@/hooks/use-auth"
 import { BrandDNA } from "@/components/brand-dna-card"
+import { toast } from "sonner"
+import { useRefresh } from "@/hooks/use-refresh"
 
 import {
   Sidebar,
@@ -22,8 +24,8 @@ import {
 } from "@/components/ui/sidebar"
 
 interface BrandRecord {
-  id: number
-  user_id: number
+  id: string
+  user_id: string
   url: string
   dna: BrandDNA
   created_at: string
@@ -33,6 +35,7 @@ export function AppSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { isAuthenticated } = useAuth()
+  const { refreshKey, triggerRefresh } = useRefresh()
   const [brands, setBrands] = useState<BrandRecord[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -47,25 +50,23 @@ export function AppSidebar() {
   useEffect(() => {
     if (!isAuthenticated) return
     fetchBrands()
-  }, [isAuthenticated])
+  }, [isAuthenticated, refreshKey])
 
-  const handleDelete = async (e: React.MouseEvent, brandId: number) => {
+  const handleDelete = async (e: React.MouseEvent, brandId: string, brandName: string) => {
     e.preventDefault()
     e.stopPropagation()
 
-    const confirmDelete = window.confirm("Are you sure you want to delete this brand kit?")
-    if (!confirmDelete) return
-
+    const toastId = toast.loading(`Deleting "${brandName}"…`)
     try {
       await apiClient.delete(`/api/brands/${brandId}`)
       setBrands((prev) => prev.filter((b) => b.id !== brandId))
+      toast.success(`"${brandName}" deleted.`, { id: toastId })
 
       if (pathname === `/dashboard/brand/${brandId}`) {
         router.push("/dashboard")
       }
-    } catch (error) {
-      console.error("Failed to delete brand", error)
-      alert("Failed to delete brand. Please try again.")
+    } catch {
+      toast.error("Failed to delete brand. Please try again.", { id: toastId })
     }
   }
 
@@ -130,7 +131,7 @@ export function AppSidebar() {
                       <span className="truncate">{brand.dna.brand_name}</span>
                     </SidebarMenuButton>
                     <SidebarMenuAction
-                      onClick={(e) => handleDelete(e, brand.id)}
+                      onClick={(e) => handleDelete(e, brand.id, brand.dna.brand_name)}
                       title="Delete brand"
                     >
                       <Trash2 className="size-3.5 text-muted-foreground hover:text-destructive" />

@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { Globe, Loader2, Sparkles, Plus } from "lucide-react"
 import apiClient from "@/lib/axios"
 import { useRouter } from "next/navigation"
+import { useRefresh } from "@/hooks/use-refresh"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,6 +22,7 @@ interface BrandRecord {
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { triggerRefresh } = useRefresh()
   const [url, setUrl] = useState("")
   const [generating, setGenerating] = useState(false)
   const [insufficientCredits, setInsufficientCredits] = useState(false)
@@ -36,6 +38,7 @@ export default function DashboardPage() {
       })
       setUrl("")
       toast.success("Brand DNA generated! 1 credit deducted.")
+      triggerRefresh()  // update sidebar brands + navbar credits
       // Redirect to the new workspace for this brand
       router.push(`/dashboard/brand/${res.data.id}`)
     } catch (err: unknown) {

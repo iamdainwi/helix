@@ -42,10 +42,12 @@ async def generate_brand_dna(body: BrandRequest, user: User, db: Session):
     db.refresh(record)
     return record
 
-def get_all(user_id: int, db: Session):
+import uuid
+
+def get_all(user_id: uuid.UUID, db: Session):
     return db.query(BrandDNA).filter(BrandDNA.user_id == user_id).all()
 
-def get_one(brand_id: int, user_id: int, db: Session):
+def get_one(brand_id: uuid.UUID, user_id: uuid.UUID, db: Session):
     record = db.query(BrandDNA).filter(
         BrandDNA.id == brand_id,
         BrandDNA.user_id == user_id
@@ -54,7 +56,7 @@ def get_one(brand_id: int, user_id: int, db: Session):
         raise HTTPException(404, "Brand DNA record not found")
     return record
 
-def delete_brand_dna(brand_id: int, user_id: int, db: Session):
+def delete_brand_dna(brand_id: uuid.UUID, user_id: uuid.UUID, db: Session):
     record = get_one(brand_id, user_id, db)
     db.delete(record)
     db.commit()

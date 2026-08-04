@@ -35,9 +35,10 @@ export default function LoginPage() {
       toast.success("Welcome back!")
       router.push("/dashboard")
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? "Invalid credentials"
+      const rawDetail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
+      const msg = Array.isArray(rawDetail)
+        ? (rawDetail[0]?.msg ?? "Invalid credentials")
+        : (rawDetail as string | undefined) ?? "Invalid credentials"
       toast.error(msg)
     } finally {
       setLoading(false)

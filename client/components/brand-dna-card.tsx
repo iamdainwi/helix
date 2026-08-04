@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import apiClient from "@/lib/axios"
+import { toast } from "sonner"
 
 export interface BrandDNA {
   brand_name: string
@@ -32,7 +33,7 @@ export interface BrandDNA {
 }
 
 interface BrandDNACardProps {
-  id: number
+  id: string
   url: string
   dna: BrandDNA
   createdAt: string
@@ -113,19 +114,22 @@ export function BrandDNACard({ id, url, dna, createdAt, delayMs = 0 }: BrandDNAC
             size="sm" 
             className="ml-auto shrink-0 h-9 gap-2"
             onClick={async () => {
+              const toastId = toast.loading("Generating PDF…")
               try {
                 const response = await apiClient.get(`/api/brands/${id}/pdf`, {
                   responseType: 'blob'
                 })
-                const url = window.URL.createObjectURL(new Blob([response.data]))
+                const blobUrl = window.URL.createObjectURL(new Blob([response.data]))
                 const link = document.createElement('a')
-                link.href = url
-                link.setAttribute('download', `brand_dna_${id}.pdf`)
+                link.href = blobUrl
+                link.setAttribute('download', `${dna.brand_name.replace(/\s+/g, '_')}_brand_dna.pdf`)
                 document.body.appendChild(link)
                 link.click()
                 link.remove()
-              } catch (error) {
-                console.error('Failed to download PDF', error)
+                window.URL.revokeObjectURL(blobUrl)
+                toast.success("PDF exported successfully!", { id: toastId })
+              } catch {
+                toast.error("Failed to export PDF. Please try again.", { id: toastId })
               }
             }}
           >

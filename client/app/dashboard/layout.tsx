@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/use-auth"
 import { AppSidebar } from "@/components/app-sidebar"
 import { Navbar } from "@/components/navbar"
 import { SidebarProvider } from "@/components/ui/sidebar"
+import { RefreshProvider } from "@/hooks/use-refresh"
 
 export default function DashboardLayout({
   children,
@@ -26,14 +27,16 @@ export default function DashboardLayout({
   if (!mounted || !isAuthenticated) return null
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <div className="flex flex-1 flex-col overflow-hidden bg-background">
-        <Navbar />
-        <div className="flex-1 overflow-y-auto">
-          {children}
+    <RefreshProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <div className="flex flex-1 flex-col overflow-hidden bg-background">
+          <Navbar />
+          <div className="flex-1 overflow-y-auto">
+            {children}
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </RefreshProvider>
   )
 }

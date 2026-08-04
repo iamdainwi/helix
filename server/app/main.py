@@ -6,8 +6,10 @@
 #   - Lifespan: create DB tables on startup
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 from app.database import engine, Base
 
@@ -36,6 +38,23 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    Convert Pydantic's 422 array-style errors into a single human-readable string.
+    Without this, the frontend receives [{loc, msg, type}, ...] which renders as [object Object].
+    """
+    errors = exc.errors()
+    # Pick the first meaningful message
+    if errors:
+        first = errors[0]
+        field = " -> ".join(str(loc) for loc in first.get("loc", []) if loc != "body")
+        msg = first.get("msg", "Invalid input")
+        detail = f"{field}: {msg}" if field else msg
+    else:
+        detail = "Invalid input"
+    return JSONResponse(status_code=422, content={"detail": detail})
 
 app.add_middleware(
     CORSMiddleware,

@@ -11,6 +11,7 @@
 from pydantic import BaseModel, HttpUrl, field_validator
 from datetime import datetime
 import json
+import uuid
 
 
 class BrandRequest(BaseModel):
@@ -18,8 +19,8 @@ class BrandRequest(BaseModel):
 
 
 class BrandDNAOut(BaseModel):
-    id: int
-    user_id: int
+    id: uuid.UUID
+    user_id: uuid.UUID
     url: str
     dna: dict          # deserialized from JSON string stored in DB
     created_at: datetime

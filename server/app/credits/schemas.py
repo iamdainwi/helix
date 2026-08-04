@@ -10,6 +10,7 @@
 
 from pydantic import BaseModel, Field
 from datetime import datetime
+import uuid
 
 
 class BalanceOut(BaseModel):
@@ -17,7 +18,7 @@ class BalanceOut(BaseModel):
 
 
 class LedgerEntryOut(BaseModel):
-    id: int
+    id: uuid.UUID
     amount: int
     reason: str
     created_at: datetime

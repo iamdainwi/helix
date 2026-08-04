@@ -39,28 +39,77 @@ def _extract_json(raw: str) -> dict:
         raise ValueError("No JSON object found in model response")
     return json.loads(match.group())
 
+def _compress_for_prompt(scraped_data: dict) -> dict:
+    """
+    Aggressively compress scraped website data to fit within LLM context limits.
+    A raw scrape can contain thousands of CSS variables and megabytes of text.
+    We reduce it to a focused, dense signal that still contains all brand-relevant information.
+    """
+    # --- CSS Variables: keep only semantically meaningful brand tokens ---
+    BRAND_KEYWORDS = {
+        "primary", "secondary", "accent", "brand", "background", "bg",
+        "foreground", "fg", "text", "heading", "surface", "muted",
+        "card", "border", "ring", "link", "font", "radius",
+    }
+    raw_vars = scraped_data.get("css_variables", {})
+    brand_vars = {
+        k: v for k, v in raw_vars.items()
+        if any(kw in k.lower() for kw in BRAND_KEYWORDS)
+    }
+    # Further limit to top 30 most relevant, keeping the dict small
+    brand_vars = dict(list(brand_vars.items())[:30])
+
+    # --- Body text: first 800 chars is enough for tone/audience analysis ---
+    body_text = scraped_data.get("body_text", "")
+    # Collapse whitespace aggressively
+    body_text = " ".join(body_text.split())[:800]
+
+    # --- Colors: max 8 distinct values ---
+    colors = scraped_data.get("color_palette", [])[:8]
+
+    # --- Typography: max 4 font families ---
+    typography = scraped_data.get("typography", [])[:4]
+
+    # --- JSON-LD: strip raw text, keep only @type and key name fields ---
+    raw_ld = scraped_data.get("json_ld") or []
+    json_ld_summary = []
+    for item in raw_ld[:2]:  # at most 2 structured data blocks
+        try:
+            parsed = json.loads(item) if isinstance(item, str) else item
+            summary = {k: parsed[k] for k in ("@type", "name", "description") if k in parsed}
+            if summary:
+                json_ld_summary.append(summary)
+        except Exception:
+            pass
+
+    return {
+        "title": (scraped_data.get("title") or "")[:120],
+        "meta_description": (scraped_data.get("meta_description") or "")[:200],
+        "og_title": (scraped_data.get("og_title") or "")[:120],
+        "headings": scraped_data.get("headings", [])[:8],
+        "body_text": body_text,
+        "color_palette": colors,
+        "css_variables": brand_vars,
+        "typography": typography,
+        "nav_links": scraped_data.get("nav_links", [])[:10],
+        "cta_buttons": scraped_data.get("cta_buttons", [])[:8],
+        "social_links": scraped_data.get("social_links") or {},
+        "json_ld": json_ld_summary,
+    }
+
+
 async def extract_brand_dna_ollama(scraped_data: dict) -> dict:
     if not settings.OLLAMA_API_KEY:
         raise HTTPException(503, "OLLAMA_API_KEY is not configured")
 
-    # Strip noise before building prompt
-    clean_data = {
-        "title": scraped_data.get("title"),
-        "meta_description": scraped_data.get("meta_description"),
-        "og_title": scraped_data.get("og_title"),
-        "headings": scraped_data.get("headings", [])[:10],
-        "body_text": scraped_data.get("body_text", "")[:2000],
-        "color_palette": scraped_data.get("color_palette", [])[:10],
-        "css_variables": scraped_data.get("css_variables", {}),
-        "typography": scraped_data.get("typography", [])[:5],
-        "nav_links": scraped_data.get("nav_links", []),
-        "cta_buttons": scraped_data.get("cta_buttons", []),
-        "json_ld": scraped_data.get("json_ld"),
-        "social_links": scraped_data.get("social_links"),
-    }
-
+    clean_data = _compress_for_prompt(scraped_data)
     template = load_skill("senior-brand-strategist")
-    prompt = template.format(data=json.dumps(clean_data, indent=2))
+    prompt = template.format(data=json.dumps(clean_data, indent=2, ensure_ascii=False))
+
+    # Safety check — log if prompt is still large
+    approx_tokens = len(prompt) // 4
+    print(f"[AI] Ollama prompt ~{approx_tokens} tokens")
+
 
     payload = {
         "model": settings.OLLAMA_MODEL,
@@ -84,8 +133,9 @@ async def extract_brand_dna_ollama(scraped_data: dict) -> dict:
             )
             response.raise_for_status()
     except httpx.HTTPStatusError as e:
-        print(e.response.text)
-        raise HTTPException(502, f"Ollama Cloud returned an error: {e.response.status_code}")
+        error_body = e.response.text
+        print(f"[Ollama Cloud] {e.response.status_code}: {error_body}")
+        raise HTTPException(502, f"Ollama Cloud error ({e.response.status_code}): {error_body[:300]}")
     except httpx.RequestError as e:
         raise HTTPException(502, f"Could not reach Ollama Cloud: {str(e)}")
 
@@ -105,30 +155,13 @@ async def extract_brand_dna_gemini(scraped_data: dict) -> dict:
 
     try:
         from google import genai
-        from google.genai import types
     except ImportError:
         raise HTTPException(500, "Google GenAI SDK is not installed")
 
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
-
-    # Strip noise before building prompt
-    clean_data = {
-        "title": scraped_data.get("title"),
-        "meta_description": scraped_data.get("meta_description"),
-        "og_title": scraped_data.get("og_title"),
-        "headings": scraped_data.get("headings", [])[:10],
-        "body_text": scraped_data.get("body_text", "")[:2000],
-        "color_palette": scraped_data.get("color_palette", [])[:10],
-        "css_variables": scraped_data.get("css_variables", {}),
-        "typography": scraped_data.get("typography", [])[:5],
-        "nav_links": scraped_data.get("nav_links", []),
-        "cta_buttons": scraped_data.get("cta_buttons", []),
-        "json_ld": scraped_data.get("json_ld"),
-        "social_links": scraped_data.get("social_links"),
-    }
-
+    clean_data = _compress_for_prompt(scraped_data)
     template = load_skill("senior-brand-strategist")
-    prompt = template.format(data=json.dumps(clean_data, indent=2))
+    prompt = template.format(data=json.dumps(clean_data, indent=2, ensure_ascii=False))
 
     try:
         response = await client.aio.models.generate_content(
@@ -147,5 +180,5 @@ async def extract_brand_dna_gemini(scraped_data: dict) -> dict:
     except (ValueError, json.JSONDecodeError) as e:
         raise HTTPException(500, f"AI returned invalid JSON: {str(e)}")
 
-# Make Gemini the default AI provider
-extract_brand_dna = extract_brand_dna_gemini
+# Make Ollama the default AI provider
+extract_brand_dna = extract_brand_dna_ollama

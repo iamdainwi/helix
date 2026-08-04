@@ -5,6 +5,32 @@ from urllib.parse import urljoin
 import httpx
 from bs4 import BeautifulSoup
 
+# Playwright is used as a JS-rendering fallback for SPA / React sites.
+# We import lazily inside the function so startup doesn't fail if playwright
+# isn't installed (it's only used in the fallback path).
+_PLAYWRIGHT_AVAILABLE: bool | None = None
+
+async def _fetch_with_playwright(url: str) -> str:
+    """
+    Launch a headless Chromium instance, navigate to `url`, wait for the
+    network to settle, and return the fully-rendered HTML.
+    """
+    from playwright.async_api import async_playwright
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=True)
+        page = await browser.new_page(
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/138.0 Safari/537.36"
+            )
+        )
+        try:
+            await page.goto(url, wait_until="networkidle", timeout=30_000)
+            html = await page.content()
+        finally:
+            await browser.close()
+
 
 def _get_text(tag) -> str:
     return tag.get_text(" ", strip=True) if tag else ""
@@ -88,8 +114,38 @@ async def scrape_website(url: str) -> dict:
     """
 
     try:
+        html: str | None = None
+
+        # --- First attempt: plain HTTP (fast, works for SSR/static sites) ---
+        try:
+            async with httpx.AsyncClient(
+                timeout=20,
+                follow_redirects=True,
+                headers={
+                    "User-Agent": (
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/138.0 Safari/537.36"
+                    )
+                },
+            ) as client:
+                response = await client.get(str(url))
+                response.raise_for_status()
+                html = response.text
+        except Exception:
+            pass
+
+        # --- Check if the page has enough content; if not, use Playwright ---
+        _text_preview = BeautifulSoup(html or "", "html.parser").get_text(" ", strip=True) if html else ""
+        if len(" ".join(_text_preview.split())) < 300:
+            # JS-heavy SPA detected — fall back to headless Chromium
+            html = await _fetch_with_playwright(str(url))
+
+        soup = BeautifulSoup(html, "html.parser")
+
+        # Re-open an httpx client for CSS file fetching
         async with httpx.AsyncClient(
-            timeout=20,
+            timeout=15,
             follow_redirects=True,
             headers={
                 "User-Agent": (
@@ -99,11 +155,6 @@ async def scrape_website(url: str) -> dict:
                 )
             },
         ) as client:
-
-            response = await client.get(str(url))
-            response.raise_for_status()
-
-            soup = BeautifulSoup(response.text, "html.parser")
 
             ############################################################
             # BASIC META

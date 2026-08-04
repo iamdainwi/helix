@@ -35,9 +35,10 @@ export default function RegisterPage() {
       toast.success("Account created! You have 10 free credits.")
       router.push("/dashboard")
     } catch (err: unknown) {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? "Registration failed"
+      const rawDetail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
+      const msg = Array.isArray(rawDetail)
+        ? (rawDetail[0]?.msg ?? "Registration failed")
+        : (rawDetail as string | undefined) ?? "Registration failed"
       toast.error(msg)
     } finally {
       setLoading(false)

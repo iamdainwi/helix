@@ -24,7 +24,7 @@ async def require_auth(
     db: Session = Depends(get_db)
 ) -> User:
     payload = decode_access_token(credentials.credentials)
-    user = db.query(User).filter(User.id == int(payload["sub"])).first()
+    user = db.query(User).filter(User.id == payload["sub"]).first()
     if not user or not user.is_active:
         raise HTTPException(401, "User not found or inactive")
     return user

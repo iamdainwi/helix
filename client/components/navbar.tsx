@@ -11,6 +11,7 @@ import { Coins, LogOut } from "lucide-react"
 import { toast } from "sonner"
 import apiClient from "@/lib/axios"
 import { useAuth } from "@/hooks/use-auth"
+import { useRefresh } from "@/hooks/use-refresh"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -19,6 +20,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 export function Navbar() {
   const router = useRouter()
   const { isAuthenticated, clearToken } = useAuth()
+  const { refreshKey } = useRefresh()
   const [balance, setBalance] = useState<number | null>(null)
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export function Navbar() {
       .get("/api/credits/balance")
       .then((res) => setBalance(res.data.balance))
       .catch(() => setBalance(null))
-  }, [isAuthenticated])
+  }, [isAuthenticated, refreshKey])
 
   function handleLogout() {
     clearToken()

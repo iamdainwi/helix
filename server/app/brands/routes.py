@@ -11,6 +11,7 @@ from app.database import get_db
 from app.core.dependencies import require_auth, require_credits
 from app.users.models import User
 from app.brands import schemas, controller
+import uuid
 
 router = APIRouter()
 
@@ -31,7 +32,7 @@ async def list_brands(
 
 @router.get("/{brand_id}", response_model=schemas.BrandDNAOut)
 async def get_brand(
-    brand_id: int,
+    brand_id: uuid.UUID,
     current_user: User = Depends(require_auth),
     db: Session = Depends(get_db)
 ):
@@ -39,7 +40,7 @@ async def get_brand(
 
 @router.delete("/{brand_id}")
 async def delete_brand(
-    brand_id: int,
+    brand_id: uuid.UUID,
     current_user: User = Depends(require_auth),
     db: Session = Depends(get_db)
 ):
@@ -50,7 +51,7 @@ from app.core.pdf_generator import generate_brand_dna_pdf
 
 @router.get("/{brand_id}/pdf")
 async def get_brand_pdf(
-    brand_id: int,
+    brand_id: uuid.UUID,
     current_user: User = Depends(require_auth),
     db: Session = Depends(get_db)
 ):

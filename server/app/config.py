@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # Ollama Cloud
     OLLAMA_CLOUD_HOST: str = os.getenv("OLLAMA_CLOUD_HOST", "https://ollama.com")
     OLLAMA_API_KEY: str = os.getenv("OLLAMA_API_KEY", "")
-    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "qwen3.5:397b-cloud")
+    OLLAMA_MODEL: str = os.getenv("OLLAMA_MODEL", "deepseek-v4-pro:cloud")
 
     # Hugging Face (for image generation)
     HF_API_KEY: str = os.getenv("HF_API_KEY", "")

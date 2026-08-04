@@ -8,9 +8,10 @@
 
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
+import uuid
 
 class UserOut(BaseModel):
-    id: int
+    id: uuid.UUID
     email: EmailStr
     is_active: bool
     created_at: datetime
